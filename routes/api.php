@@ -28,5 +28,7 @@ Route::namespace('Api')->group(function () {
     //Task update
     Route::put('/task/{task_id}', 'TaskController@updateTask');
 
+    Route::get('/task/list', 'TaskController@showTaskList');
+
 
 });

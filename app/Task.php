@@ -4,6 +4,7 @@ namespace App;
 
 use Laravel\Passport\HasApiTokens;
 use Illuminate\Database\Eloquent\Model;
+use App\User;
 
 class Task extends Model
 {
@@ -13,5 +14,10 @@ class Task extends Model
     ];
 
     protected $hidden = ['email'];
+
+    public function userModel()
+    {
+        return $this->hasOne('App\User','id','user_id');
+    }
 
 }

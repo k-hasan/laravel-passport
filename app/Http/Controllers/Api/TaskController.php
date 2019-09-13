@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Task;
+use App\User;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class TaskController extends Controller
 {
@@ -12,37 +15,119 @@ class TaskController extends Controller
     public function saveTask(Request $request)
     {
 
-        $validatedData = $request->validate([
-            'parent_id' => 'nullable',
-            'user_id' => 'required',
+        $userId = $request->user_id;
+        $parentId = $request->parent_id;
+
+        $data = $request->all();
+        $validator = Validator::make($data, [
+            'parent_id' => ['nullable', Rule::exists('tasks','id')
+                ->where(function ($query) use ($parentId) {
+                    $query->where('id', $parentId);
+                })],
+
+            'user_id' => ['required', Rule::exists('users', 'id')
+                ->where(function ($query) use ($userId) {
+                    $query->where('id', $userId);
+                })],
+
             'title' => 'required',
-            'point' => 'required|min:1|max:10',
-            'is_done' => 'required|integer|min:0|max:1'
-        ]);
-        $validatedData['email'] = $request->email;
-
-        $task = Task::create($validatedData);
-
-        return response(['user'=>$task], 201);
-    }
-
-
-    public function updateTask(Request $request)
-    {
-        $updatedData = $request->validate([
-            'parent_id' => 'nullable',
-            'user_id' => 'required',
-            'title' => 'required',
-            'point' => 'required|min:1|max:10',
-            'is_done' => 'required|integer|min:0|max:1',
+            'point' => 'required|integer|min:1|max:12',
+            'is_done' => ['required', Rule::in([0, 1])],
             'email' => ''
         ]);
 
-        $task = Task::where('id', '=', $request->route('task_id'))->first();
+        if ($validator->fails()) {
+            return response(['message'=>'Invalid Data', 'error'=>$validator->errors()],400);
+        }
 
-        $task->update($request->all());
+        $task = Task::create($data);
 
-        return response(['user'=>$updatedData], 201);
+        if(isset($task)){
+            return response(['user' => $task], 201);
+        }else{
+            return response(['message'=>'Server Internal Error'], 500);
+        }
+    }
+
+
+    public function updateTask(Request $request, $id)
+    {
+        $data = $request->all();
+        $userId = $request->user_id;
+        $parentId = $request->parent_id;
+
+        $validator = Validator::make($data, [
+            'parent_id' => ['nullable', Rule::exists('tasks','id')
+                ->where(function ($query) use ($parentId) {
+                    $query->where('id', $parentId);
+                })],
+
+            'user_id' => ['required', Rule::exists('users', 'id')
+                ->where(function ($query) use ($userId) {
+                    $query->where('id', $userId);
+                })],
+
+            'title' => 'required',
+            'point' => 'required|integer|min:1|max:12',
+            'is_done' => ['required', Rule::in([0, 1])],
+            'email' => ''
+        ]);
+
+        if ($validator->fails()) {
+            return response(['message'=>'Invalid Data', 'error'=>$validator->errors()],400);
+        }
+
+        $task = Task::where('id', '=', $id)->first();
+
+        $updateStatus = $task->update($data);
+
+        if(isset($updateStatus)){
+            return response(['user' => $data], 201);
+        }else{
+            return response(['message'=>'Server Internal Error'], 500);
+        }
 
     }
+
+    public function showTaskList()
+    {
+        $allTaskList = Task::all();
+        $data = $this->generateTaskDataHierarchy($allTaskList);
+//        dd($data);
+        return view('dash', compact(['data']));
+    }
+
+    public function generateTaskDataHierarchy($resultData) {
+        $data=[];
+        foreach($resultData as $row){
+            $sub_data['id'] = $row->id;
+            $sub_data['parent_id'] =  $row->parent_id;
+            $sub_data['title'] =  $row->title .' ('.$row->point.')';
+            $data[] = $sub_data;
+
+            if(isset($data)){
+                foreach($data as $key => &$value) {
+                    $output[$value["id"]] = &$value;
+                }
+
+                foreach($data as $key => &$value) {
+                    if ($value["parent_id"] && isset($output[$value["parent_id"]])) {
+                        $output[$value["parent_id"]]["nodes"][] = &$value;
+                    }
+                }
+
+                foreach($data as $key => &$value) {
+                    if ($value["parent_id"] && isset($output[$value["parent_id"]])) {
+                        unset($data[$key]);
+                    }
+                }
+
+            }
+
+        }
+
+        return $data;
+    }
+
+
 }

@@ -37,7 +37,7 @@ class AuthController extends Controller
             return response(['message'=>'Invalid user name or password !']);
         }
 
-        $accessToken = auth()->user()->createToken('authToken')->accessToken;
+        $accessToken = auth()->user()->createToken('ss')->accessToken;
 
         return response(['user'=> auth()->user(), 'access_token'=>$accessToken]);
     }
