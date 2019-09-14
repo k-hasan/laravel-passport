@@ -1,3 +1,53 @@
+
+<?php
+
+
+function generateTaskDataHierarchy($resultData) {
+    $data=[];
+    foreach($resultData as $row){
+        $sub_data['id'] = $row->id;
+        $sub_data['parent_id'] =  $row->parent_id;
+        $sub_data['title'] =  $row->title .' ('.$row->point.')';
+        $data[] = $sub_data;
+
+        if(isset($data)){
+            foreach($data as $key => &$value) {
+                $output[$value["id"]] = &$value;
+            }
+
+            foreach($data as $key => &$value) {
+                if ($value["parent_id"] && isset($output[$value["parent_id"]])) {
+                    $output[$value["parent_id"]]["nodes"][] = &$value;
+                }
+            }
+
+            foreach($data as $key => &$value) {
+                if ($value["parent_id"] && isset($output[$value["parent_id"]])) {
+                    unset($data[$key]);
+                }
+            }
+
+        }
+
+    }
+
+    return $data;
+}
+
+function olLiTree($tree )
+{
+    echo '<ul>';
+    foreach ( $tree as $item ) {
+        echo "<li> $item[title]";
+        if ( isset( $item['nodes'] ) ) {
+            olLiTree( $item['nodes'] );
+        }
+    }
+    echo '</li></ul>';
+}
+
+
+?>
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
@@ -64,45 +114,19 @@
         </style>
     </head>
     <body>
-            <div class="content">
-                <table class="table table-dark" width="100%" border="1" style="border-collapse: collapse;">
-                    <tr>
-                        <td>
-                            <?php
-                            function olLiTree($tree )
-                            {
-                                echo '<ul>';
-                                foreach ( $tree as $item ) {
-                                    echo "<li> $item[title]";
-                                    if ( isset( $item['nodes'] ) ) {
-                                        olLiTree( $item['nodes'] );
-                                    }
-                                }
-                                echo '</li></ul>';
-                            }
-
-                            olLiTree($data);
-                            ?>
-                        </td>
-
-                        <td>
-                            <?php
-
-                            olLiTree($data);
-                            ?>
-                        </td>
-
-                        <td>
-                            <?php
-                            olLiTree($data);
-                            ?>
-                        </td>
-                    </tr>
-                </table>
-
-
-
-
+        <div class="content">
+            <table class="table table-dark" width="100%" border="1" style="border-collapse: collapse;">
+                <tr>
+                    @foreach($data as $count=> $list)
+                    <td>
+                        {{ $users[$count]}}
+                        <?php
+                            olLiTree(generateTaskDataHierarchy($list));
+                        ?>
+                    </td>
+                    @endforeach
+                </tr>
+            </table>
         </div>
     </body>
 </html>

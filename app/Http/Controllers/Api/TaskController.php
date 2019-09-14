@@ -91,43 +91,14 @@ class TaskController extends Controller
 
     public function showTaskList()
     {
-        $allTaskList = Task::all();
-        $data = $this->generateTaskDataHierarchy($allTaskList);
-//        dd($data);
-        return view('dash', compact(['data']));
+        $users = User::has('tasks')->get()->pluck('name','id');
+
+        $data = Task::all()->groupBy('user_id');
+
+        return view('dash', compact(['data', 'users']));
     }
 
-    public function generateTaskDataHierarchy($resultData) {
-        $data=[];
-        foreach($resultData as $row){
-            $sub_data['id'] = $row->id;
-            $sub_data['parent_id'] =  $row->parent_id;
-            $sub_data['title'] =  $row->title .' ('.$row->point.')';
-            $data[] = $sub_data;
 
-            if(isset($data)){
-                foreach($data as $key => &$value) {
-                    $output[$value["id"]] = &$value;
-                }
-
-                foreach($data as $key => &$value) {
-                    if ($value["parent_id"] && isset($output[$value["parent_id"]])) {
-                        $output[$value["parent_id"]]["nodes"][] = &$value;
-                    }
-                }
-
-                foreach($data as $key => &$value) {
-                    if ($value["parent_id"] && isset($output[$value["parent_id"]])) {
-                        unset($data[$key]);
-                    }
-                }
-
-            }
-
-        }
-
-        return $data;
-    }
 
 
 }
